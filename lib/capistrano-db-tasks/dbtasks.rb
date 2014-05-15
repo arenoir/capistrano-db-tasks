@@ -3,7 +3,7 @@ require File.expand_path("#{File.dirname(__FILE__)}/database")
 require File.expand_path("#{File.dirname(__FILE__)}/asset")
 
 set :local_rails_env, ENV['RAILS_ENV'] || 'development' unless fetch(:local_rails_env)
-set :rails_env, 'production' unless fetch(:rails_env)
+set :rails_env, (fetch(:rails_env) || fetch(:stage))
 set :db_local_clean, false unless fetch(:db_local_clean)
 set :assets_dir, 'system' unless fetch(:assets_dir)
 set :local_assets_dir, 'public' unless fetch(:local_assets_dir)
@@ -18,6 +18,37 @@ namespace :db do
         end
       end
     end
+    
+    desc 'Synchronize your remote database with other remote database data'
+    task :pull, :source_env do |task, args|
+      on roles(:db) do 
+        if source_env = args[:source_env]        
+          if Util.prompt "Are you sure you want to REPLACE #{fetch(:rails_env)} DATABASE with #{source_env} database"
+            Database.remote_to_remote(self, {source_env: source_env})
+          end
+        else
+          
+          ask(:src_database, 'Source Database Name')
+          ask(:src_username, 'Source Database User Name')
+          ask(:src_password, 'Source Database Password')
+          ask(:src_host, 'Source Database Host Name')
+          
+          opts = {
+            database: fetch(:src_database),
+            username: fetch(:src_username),
+            password: fetch(:src_password),
+            host: fetch(:src_host)
+            
+          }
+          
+          if Util.prompt "Are you sure you want to REPLACE #{fetch(:rails_env)} DATABASE with #{fetch(:src_database)} database"
+            Database.remote_to_remote(self, opts)
+          end
+          
+        end
+      end
+    end
+    
   end
 
   namespace :local do

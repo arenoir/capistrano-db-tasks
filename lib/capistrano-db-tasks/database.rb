@@ -83,7 +83,27 @@ module Database
       @cap.execute("cd #{@cap.current_path} && rm #{unzip_file}") if cleanup
     end
   end
-
+  
+  class RemoteRo < Remote
+    
+    def initialize(cap_instance, opts = {})
+      super(cap_instance)
+      
+      if _env = opts[:source_env]
+        @config = YAML.load(ERB.new(@config).result)[_env.to_s]
+      else
+        @config['database'] = opts[:database]
+        @config['username'] = opts[:username]
+        @config['password'] = opts[:password]
+        @config['host'] = opts[:host]
+      end
+    end
+    
+    def load
+      raise 'remote database is read only'
+    end
+  end
+  
   class Local < Base
     def initialize(cap_instance)
       super(cap_instance)
@@ -144,6 +164,17 @@ module Database
       local_db.dump.upload
       remote_db.load(local_db.output_file, instance.fetch(:db_local_clean))
     end
+    
+    def remote_to_remote(instance, opts = {})
+      destination_db = Database::Remote.new(instance)
+      source_db = Database::RemoteRo.new(instance, opts)
+      
+      check(destination_db, source_db)
+      
+      source_db.dump
+      destination_db.load(source_db.output_file, instance.fetch(:db_local_clean))
+    end
+    
   end
 
 end
