@@ -42,7 +42,7 @@ module Database
 
     def dump_cmd
       if mysql?
-        "mysqldump #{credentials} #{database} --lock-tables=false"
+        "mysqldump #{credentials} #{database} --single-transaction --lock-tables=false | grep -v '50013 DEFINER'"
       elsif postgresql?
         "#{pgpass} pg_dump --no-acl --no-owner #{credentials} #{database}"
       end
@@ -91,6 +91,7 @@ module Database
       super(cap_instance)
       
       if _env = opts[:source_env]
+        @config = @cap.capture("cat #{@cap.current_path}/config/database.yml")
         @config = YAML.load(ERB.new(@config).result)[_env.to_s]
       else
         @config['database'] = opts[:database]

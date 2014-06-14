@@ -20,9 +20,10 @@ namespace :db do
     end
     
     desc 'Synchronize your remote database with other remote database data'
-    task :pull, :source_env do |task, args|
+    task :pull_remote, :source_env do |task, args|
+      
       on roles(:db) do 
-        if source_env = args[:source_env]        
+        if source_env = args[:source_env]
           if Util.prompt "Are you sure you want to REPLACE #{fetch(:rails_env)} DATABASE with #{source_env} database"
             Database.remote_to_remote(self, {source_env: source_env})
           end
