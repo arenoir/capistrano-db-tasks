@@ -62,17 +62,17 @@ module Database
   class Remote < Base
     def initialize(cap_instance)
       super(cap_instance)
-      @config = @cap.capture("cat #{@cap.current_path}/config/database.yml")
+      @config = @cap.capture("cat #{@cap.shared_path}/config/database.yml")
       @config = YAML.load(ERB.new(@config).result)[@cap.fetch(:rails_env).to_s]
     end
 
     def dump
-      @cap.execute "cd #{@cap.current_path} && #{dump_cmd} | bzip2 - - > #{output_file}"
+      @cap.execute "cd #{@cap.release_path} && #{dump_cmd} | bzip2 - - > #{output_file}"
       self
     end
 
     def download(local_file = "#{output_file}")
-      remote_file = "#{@cap.current_path}/#{output_file}"
+      remote_file = "#{@cap.release_path}/#{output_file}"
       @cap.download! remote_file, local_file
     end
 
@@ -80,8 +80,8 @@ module Database
     def load(file, cleanup)
       unzip_file = File.join(File.dirname(file), File.basename(file, '.bz2'))
       # @cap.run "cd #{@cap.current_path} && bunzip2 -f #{file} && RAILS_ENV=#{@cap.rails_env} bundle exec rake db:drop db:create && #{import_cmd(unzip_file)}"
-      @cap.execute "cd #{@cap.current_path} && bunzip2 -f #{file} && RAILS_ENV=#{@cap.fetch(:rails_env)} && #{import_cmd(unzip_file)}"
-      @cap.execute("cd #{@cap.current_path} && rm #{unzip_file}") if cleanup
+      @cap.execute "cd #{@cap.release_path} && bunzip2 -f #{file} && RAILS_ENV=#{@cap.fetch(:rails_env)} && #{import_cmd(unzip_file)}"
+      @cap.execute("cd #{@cap.release_path} && rm #{unzip_file}") if cleanup
     end
   end
   
@@ -91,7 +91,7 @@ module Database
       super(cap_instance)
       
       if _env = opts[:source_env]
-        @config = @cap.capture("cat #{@cap.current_path}/config/database.yml")
+        @config = @cap.capture("cat #{@cap.shared_path}/config/database.yml")
         @config = YAML.load(ERB.new(@config).result)[_env.to_s]
       else
         @config['database'] = opts[:database]
@@ -134,7 +134,7 @@ module Database
     end
 
     def upload
-      remote_file = "#{@cap.current_path}/#{output_file}"
+      remote_file = "#{@cap.release_path}/#{output_file}"
       @cap.upload! output_file, remote_file
     end
   end
